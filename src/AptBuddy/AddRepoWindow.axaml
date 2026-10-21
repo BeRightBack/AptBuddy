@@ -1,0 +1,57 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AptBuddy.AddRepoWindow"
+        Title="Add repository"
+        Width="640"
+        SizeToContent="Height"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False">
+
+  <StackPanel Margin="14" Spacing="10">
+
+    <TextBlock TextWrapping="Wrap" Opacity="0.85"
+               Text="Uses the verified add-repo.sh flow: fetch the vendor key, show its fingerprint, write the sources entry, then run apt update. Runs elevated through pkexec."/>
+
+    <Grid ColumnDefinitions="130,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto">
+      <TextBlock Text="Repo name" VerticalAlignment="Center"/>
+      <TextBox Grid.Column="1" x:Name="RepoName" Watermark="e.g. microsoft (lowercase, dashes ok)"/>
+
+      <TextBlock Grid.Row="1" Text="Key URL" VerticalAlignment="Center"/>
+      <TextBox Grid.Row="1" Grid.Column="1" x:Name="KeyUrl" Watermark="https://…/*.asc or *.gpg"/>
+
+      <TextBlock Grid.Row="2" Text="Suite" VerticalAlignment="Center"/>
+      <TextBox Grid.Row="2" Grid.Column="1" x:Name="Suite" Watermark="e.g. bookworm, stable, nodistro"/>
+
+      <TextBlock Grid.Row="3" Text="Component" VerticalAlignment="Center"/>
+      <TextBox Grid.Row="3" Grid.Column="1" x:Name="Component" Text="main"/>
+
+      <TextBlock Grid.Row="4" Text="Repo URL" VerticalAlignment="Center"/>
+      <TextBox Grid.Row="4" Grid.Column="1" x:Name="RepoUrl" Watermark="https://… repository root"/>
+
+      <TextBlock Grid.Row="5" Text="Architecture" VerticalAlignment="Center"/>
+      <TextBox Grid.Row="5" Grid.Column="1" x:Name="Arch" Watermark="optional — amd64 for amd64-only repos"/>
+
+      <TextBlock Grid.Row="6" Text="Format" VerticalAlignment="Center"/>
+      <StackPanel Grid.Row="6" Grid.Column="1" Orientation="Horizontal" Spacing="12">
+        <RadioButton x:Name="FmtList" Content="One-line (.list)" IsChecked="True" GroupName="fmt"/>
+        <RadioButton x:Name="FmtDeb822" Content="deb822 (.sources)" GroupName="fmt"/>
+      </StackPanel>
+    </Grid>
+
+    <Grid ColumnDefinitions="*,Auto">
+      <TextBox x:Name="ScriptPath" Watermark="Path to add-repo.sh"/>
+      <Button Grid.Column="1" Content="Fetch key &amp; verify" Click="FetchKey_Click" Margin="8,0,0,0"/>
+    </Grid>
+
+    <TextBox x:Name="FingerprintBox" IsReadOnly="True" AcceptsReturn="True" MinHeight="100"
+             TextWrapping="Wrap"
+             Watermark="Fingerprint output appears here. Confirm it matches the vendor's published fingerprint before adding."/>
+
+    <TextBlock x:Name="ResultText" TextWrapping="Wrap"/>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button x:Name="AddButton" Content="Add repository" Click="Add_Click" IsEnabled="False"/>
+      <Button Content="Close" Click="Cancel_Click"/>
+    </StackPanel>
+  </StackPanel>
+</Window>

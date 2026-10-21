@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AptBuddy.Core/AptBuddy.Core.csproj" />
+    <Project Path="src/AptBuddy/AptBuddy.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AptBuddy.Core.Tests/AptBuddy.Core.Tests.csproj" />
+  </Folder>
+</Solution>

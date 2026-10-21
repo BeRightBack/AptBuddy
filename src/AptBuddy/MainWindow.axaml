@@ -1,0 +1,243 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AptBuddy.MainWindow"
+        Title="AptBuddy — Kali package manager"
+        Width="1000" Height="680"
+        MinWidth="800" MinHeight="540"
+        WindowStartupLocation="CenterScreen"
+        Loaded="OnLoaded">
+
+  <Window.Styles>
+    <!-- zebra-striped rows (skip the selected highlight) -->
+    <Style Selector="ListBoxItem:not(:selected):nth-child(2n)">
+      <Setter Property="Background" Value="#0F243B5A"/>
+    </Style>
+
+    <!-- destructive actions -->
+    <Style Selector="Button.danger">
+      <Setter Property="Background" Value="#B3261E"/>
+      <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="#8C1D18"/>
+    </Style>
+
+    <!-- section headings in the details pane -->
+    <Style Selector="TextBlock.sectionHeader">
+      <Setter Property="Foreground" Value="#7DB9FF"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+  </Window.Styles>
+
+  <DockPanel>
+
+    <!-- top status bar -->
+    <Border DockPanel.Dock="Top" BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="10,6">
+      <DockPanel>
+        <TextBlock Text="AptBuddy" FontSize="16" FontWeight="Bold" DockPanel.Dock="Left"/>
+        <TextBlock Text="{Binding Status}" VerticalAlignment="Center"
+                   Margin="12,0,0,0" TextTrimming="CharacterEllipsis" Opacity="0.9"/>
+      </DockPanel>
+    </Border>
+
+    <!-- bottom command log -->
+    <Grid DockPanel.Dock="Bottom" Height="150" Margin="10,0,10,10" RowDefinitions="Auto,*">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="Command log (privileged operations)" FontWeight="SemiBold" VerticalAlignment="Center"/>
+        <Button Grid.Column="1" Content="Clear" Click="ClearLog_Click" HorizontalAlignment="Right"/>
+      </Grid>
+      <TextBox Grid.Row="1" Text="{Binding OutputLog}" IsReadOnly="True" AcceptsReturn="True"
+               TextWrapping="Wrap" FontFamily="monospace" Margin="0,4,0,0"/>
+    </Grid>
+
+    <!-- main tabs -->
+    <TabControl Margin="10,8,10,0">
+
+      <!-- ================= Packages ================= -->
+      <TabItem Header="Packages">
+        <DockPanel>
+          <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto,Auto,Auto,Auto,Auto,Auto,Auto" Margin="0,0,0,8">
+            <TextBox x:Name="SearchBox" Watermark="Search installed or available packages"
+                     Text="{Binding SearchTerm, Mode=TwoWay}" KeyDown="SearchBox_KeyDown"/>
+            <RadioButton Grid.Column="1" GroupName="pkgView" Content="Installed"
+                         IsChecked="{Binding ViewIsInstalled}" Margin="8,0,0,0" VerticalAlignment="Center"/>
+            <RadioButton Grid.Column="2" GroupName="pkgView" Content="Available"
+                         IsChecked="{Binding ViewIsAvailable}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            <RadioButton Grid.Column="3" GroupName="pkgView" Content="All"
+                         IsChecked="{Binding ViewIsAll}" Margin="6,0,0,0" VerticalAlignment="Center"/>
+            <CheckBox Grid.Column="4" Content="Apps only" IsChecked="{Binding AppsOnly}"
+                      Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <Button Grid.Column="5" Content="Refresh lists" Click="Refresh_Click"
+                    IsEnabled="{Binding CanAct}" Margin="12,0,0,0"/>
+            <Button Grid.Column="6" Content="Install .deb…" Click="InstallDeb_Click"
+                    IsEnabled="{Binding CanAct}" Margin="6,0,0,0"/>
+            <Button Grid.Column="7" Content="Install binary archive…" Click="InstallBinary_Click"
+                    IsEnabled="{Binding CanAct}" Margin="6,0,0,0"/>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,1.6*">
+            <DockPanel Margin="0,0,8,0">
+              <Grid DockPanel.Dock="Top" ColumnDefinitions="Auto,Auto" Margin="0,0,0,4">
+                <TextBlock Text="{Binding ShownCount}" FontSize="11" Opacity="0.7" VerticalAlignment="Center"/>
+                <Button Grid.Column="1" Content="{Binding ShowAllLabel}" IsVisible="{Binding MoreVisible}"
+                        Click="ShowAll_Click" FontSize="11" Padding="10,2" Margin="8,0,0,0" Classes="accent"/>
+              </Grid>
+              <Grid>
+                <ListBox ItemsSource="{Binding SearchResults}"
+                         SelectedItem="{Binding Selected, Mode=TwoWay}">
+                  <ListBox.ItemTemplate>
+                    <DataTemplate>
+                      <Grid Margin="2" RowDefinitions="Auto,Auto" ColumnDefinitions="*,Auto">
+                        <Grid ColumnDefinitions="*,Auto">
+                          <TextBlock Text="{Binding Name}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Grid.Column="1" Text="{Binding Version}" Opacity="0.7"
+                                     TextTrimming="CharacterEllipsis" MaxWidth="220" Margin="6,0,0,0"/>
+                        </Grid>
+                        <TextBlock Grid.Column="1" Text="✓ installed" Foreground="#2E7D32" FontWeight="SemiBold"
+                                   IsVisible="{Binding IsInstalled}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+                        <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Summary}" TextWrapping="Wrap"
+                                   TextTrimming="CharacterEllipsis" Opacity="0.75"/>
+                      </Grid>
+                    </DataTemplate>
+                  </ListBox.ItemTemplate>
+                </ListBox>
+                <TextBlock Text="No packages match — try another term or switch the view."
+                           IsVisible="{Binding HasNoResults}" IsHitTestVisible="False"
+                           HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0.55"/>
+              </Grid>
+            </DockPanel>
+
+            <ScrollViewer Grid.Column="1">
+              <Grid>
+                <StackPanel Spacing="4" Margin="0,0,4,8" IsVisible="{Binding HasSelection}">
+                <TextBlock Text="{Binding Selected.Name}" FontSize="18" FontWeight="Bold"
+                           TextWrapping="Wrap" Margin="0,0,0,4"/>
+                <TextBlock Text="{Binding SelectedSummary}" TextWrapping="Wrap"/>
+                <TextBlock Text="{Binding SelectedInstalled}" FontWeight="SemiBold" Margin="0,8,0,0"/>
+                <TextBlock Text="{Binding SelectedCandidate}" Opacity="0.85"/>
+                <TextBlock Text="{Binding SelectedSection}" Opacity="0.85"/>
+                <TextBlock Text="{Binding SelectedMaintainer}" TextWrapping="Wrap" Opacity="0.85"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="6" Margin="0,12,0,0">
+                  <Button Content="Install" Classes="accent" Click="Install_Click" IsEnabled="{Binding CanAct}"/>
+                  <Button Content="Reinstall" Click="Reinstall_Click" IsEnabled="{Binding CanAct}"/>
+                  <Button Content="Remove" Classes="danger" Click="Remove_Click" IsEnabled="{Binding CanAct}"/>
+                  <Button Content="{Binding HoldLabel}" Click="ToggleHold_Click" IsEnabled="{Binding CanAct}"/>
+                </StackPanel>
+
+                <TextBlock Text="Dependencies" Classes="sectionHeader" Margin="0,16,0,2"/>
+                <ItemsControl ItemsSource="{Binding Dependencies}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Kind}" Width="95" Opacity="0.7"/>
+                        <TextBlock Text="{Binding Package}" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Status}" Foreground="#2E7D32"/>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <TextBlock Text="Installed packages depending on it" Classes="sectionHeader" Margin="0,16,0,2"/>
+                <ItemsControl ItemsSource="{Binding RDependents}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding}"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+                </StackPanel>
+
+                <!-- idle overview: fills the pane until a package is selected -->
+                <StackPanel Spacing="10" Margin="0,0,8,8" MaxWidth="620" IsVisible="{Binding NoSelection}">
+                  <TextBlock Text="Browse packages without the apt incantations" FontSize="20" FontWeight="Bold"/>
+                  <TextBlock Text="Type a search term and results filter as you type. Select a package to see versions, dependencies and install/remove/hold actions. Anything that changes the system runs through pkexec — you just confirm your desktop password."
+                             TextWrapping="Wrap" Opacity="0.85"/>
+                  <TextBlock Text="{Binding IdleStats}" FontFamily="monospace" FontSize="12" Classes="sectionHeader"
+                             TextWrapping="Wrap" Margin="0,4,0,0"/>
+                  <TextBlock Text="Tips" Classes="sectionHeader" Margin="0,6,0,0"/>
+                  <TextBlock Text="• 'Apps only' hides libraries and dev packages — switch to All to see everything&#10;• Views: Installed / Available / All — searching filters whichever is active&#10;• 'Show all N' lifts the display cap when a view is truncated&#10;• Hold pins a package so upgrades skip it (Unhold to free it)"
+                             TextWrapping="Wrap" Opacity="0.8"/>
+                </StackPanel>
+              </Grid>
+            </ScrollViewer>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+
+      <!-- ================= Updates ================= -->
+      <TabItem Header="Updates">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
+            <Button Content="Refresh lists (apt update)" Classes="accent" Click="Refresh_Click"
+                    IsEnabled="{Binding CanAct}"/>
+            <Button Content="Upgrade all" Classes="danger" Click="UpgradeAll_Click" IsEnabled="{Binding CanAct}"/>
+            <TextBlock Text="{Binding UpdatesSummary}" VerticalAlignment="Center" Margin="8,0,0,0"/>
+          </StackPanel>
+          <ListBox ItemsSource="{Binding Upgradable}">
+            <ListBox.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="2">
+                  <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Width="320" TextTrimming="CharacterEllipsis"/>
+                  <TextBlock Text="{Binding InstalledVersion}" Opacity="0.75"/>
+                  <TextBlock Text="→" Opacity="0.5"/>
+                  <TextBlock Text="{Binding TargetVersion}"/>
+                </StackPanel>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </DockPanel>
+      </TabItem>
+
+      <!-- ================= Repositories ================= -->
+      <TabItem Header="Repositories">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
+            <Button Content="Add repository…" Click="AddRepo_Click"/>
+            <Button Content="Re-read sources" Click="RefreshRepos_Click" IsEnabled="{Binding CanAct}"/>
+            <TextBlock Text="Read-only view of /etc/apt/sources.list(.d). Adding runs the verified add-repo.sh flow (elevated)."
+                       VerticalAlignment="Center" Opacity="0.7" Margin="8,0,0,0"/>
+          </StackPanel>
+          <ScrollViewer>
+            <ItemsControl ItemsSource="{Binding Repositories}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border BorderBrush="Gray" BorderThickness="0,0,0,1" Padding="4,6" Margin="0,0,4,0">
+                    <StackPanel Spacing="2">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Status}" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Uri}" FontWeight="SemiBold"/>
+                        <TextBlock Text="{Binding Suite}" Opacity="0.8"/>
+                      </StackPanel>
+                      <TextBlock Text="{Binding Component}" Opacity="0.75"/>
+                      <TextBlock Text="{Binding File}" Opacity="0.6"/>
+                      <TextBlock Text="{Binding SignedBy}" Opacity="0.6"/>
+                    </StackPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </DockPanel>
+      </TabItem>
+
+      <!-- ================= Cleanup ================= -->
+      <TabItem Header="Cleanup">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="6" Margin="0,0,0,8">
+            <Button Content="Check removable" Click="CleanupCheck_Click" IsEnabled="{Binding CanAct}"/>
+            <Button Content="Remove all listed" Classes="danger" Click="CleanupRemove_Click" IsEnabled="{Binding CanAct}"/>
+            <TextBlock Text="{Binding CleanupSummary}" VerticalAlignment="Center" Margin="8,0,0,0" TextWrapping="Wrap"/>
+          </StackPanel>
+          <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,*">
+            <TextBlock Text="Can be safely removed (autoremove preview)" FontWeight="SemiBold"/>
+            <ListBox Grid.Row="1" ItemsSource="{Binding AutoremoveList}" Margin="0,4,8,0"/>
+            <TextBlock Grid.Column="1" Text="Currently held packages (apt-mark hold)" FontWeight="SemiBold" Margin="8,0,0,0"/>
+            <ListBox Grid.Column="1" Grid.Row="1" ItemsSource="{Binding Holds}" Margin="8,4,0,0"/>
+          </Grid>
+        </DockPanel>
+      </TabItem>
+
+    </TabControl>
+  </DockPanel>
+</Window>
